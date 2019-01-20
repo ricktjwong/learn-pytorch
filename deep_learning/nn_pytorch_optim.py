@@ -3,7 +3,7 @@ import torch
 
 # N is batch size; D_in is input dimension;
 # H is hidden dimension; D_out is output dimension.
-N, D_in, H, D_out = 3, 3, 5000, 1
+N, D_in, H, D_out = 3, 3, 1000, 1
 
 # Create random Tensors to hold inputs and outputs
 # We want to solve the equation x dot w = y
@@ -17,9 +17,12 @@ y = torch.tensor([[ 44.],
                 [107.],
                 [170.]])
 
-# Use the nn package to define our model and loss function.
+# Use the nn package to define our model and loss function
+# Two hidden layers neural network
 model = torch.nn.Sequential(
     torch.nn.Linear(D_in, H),
+    torch.nn.ReLU(),
+    torch.nn.Linear(H, H),
     torch.nn.ReLU(),
     torch.nn.Linear(H, D_out),
 )
