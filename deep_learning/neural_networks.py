@@ -1,44 +1,56 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Dec 17 22:03:56 2018
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
-@author: ricktjwong
-"""
+class Net(nn.Module):
+    def __init__(self):
+        super(Net, self).__init__()
+        # 1 input image channel, 6 output channels, 5x5 square convolution
+        # kernel
+        self.conv1 = nn.Conv2d(1, 6, 5)
+        self.conv2 = nn.Conv2d(6, 16, 5)
+        # an affine operation: y = Wx + b
+        self.fc1 = nn.Linear(16 * 5 * 5, 120)
+        self.fc2 = nn.Linear(120, 84)
+        self.fc3 = nn.Linear(84, 10)
 
-import numpy as np
+    def forward(self, x):
+        # Max pooling over a (2, 2) window
+        x = F.max_pool2d(F.relu(self.conv1(x)), (2, 2))
+        # If the size is a square you can only specify a single number
+        x = F.max_pool2d(F.relu(self.conv2(x)), 2)
+        x = x.view(-1, self.num_flat_features(x))
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
 
-# N is batch size; D_in is input dimension;
-# H is hidden dimension; D_out is output dimension.
-N, D_in, H, D_out = 64, 1000, 100, 10
+    def num_flat_features(self, x):
+        size = x.size()[1:]  # all dimensions except the batch dimension
+        num_features = 1
+        for s in size:
+            num_features *= s
+        return num_features
 
-# Create random input and output data
-x = np.random.randn(N, D_in)
-y = np.random.randn(N, D_out)
 
-# Randomly initialize weights
-w1 = np.random.randn(D_in, H)
-w2 = np.random.randn(H, D_out)
+net = Net()
+print(net)
 
-learning_rate = 1e-6
-for t in range(500):
-    # Forward pass: compute predicted y
-    h = x.dot(w1)
-    h_relu = np.maximum(h, 0)
-    y_pred = h_relu.dot(w2)
+params = list(net.parameters())
+print(len(params))
+print(params[0].size())  # conv1's .weight
 
-    # Compute and print loss
-    loss = np.square(y_pred - y).sum()
-    print(t, loss)
+input = torch.randn(1, 1, 32, 32)
+out = net(input)
+print(out)
 
-    # Backprop to compute gradients of w1 and w2 with respect to loss
-    grad_y_pred = 2.0 * (y_pred - y)
-    grad_w2 = h_relu.T.dot(grad_y_pred)
-    grad_h_relu = grad_y_pred.dot(w2.T)
-    grad_h = grad_h_relu.copy()
-    grad_h[h < 0] = 0
-    grad_w1 = x.T.dot(grad_h)
+net.zero_grad()
+out.backward(torch.randn(1, 10))
 
-    # Update weights
-    w1 -= learning_rate * grad_w1
-    w2 -= learning_rate * grad_w2
+output = net(input)
+target = torch.randn(10)  # a dummy target, for example
+target = target.view(1, -1)  # make it the same shape as output
+criterion = nn.MSELoss()
+
+loss = criterion(output, target)
+print(loss)
